@@ -1,0 +1,34 @@
+[build-system]
+requires = ["hatchling>=1.10.0", "ipykernel", "jupyter-client"]
+build-backend = "hatchling.build"
+
+[project]
+name = "agentik"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = ["jupyter-client>=8.8.0", "pydantic-ai-kernel>=1.2.5"]
+authors = [
+    { name = "Marius Garénaux Gruau", email = "marius.garenaux-gruau@irisa.fr" },
+]
+maintainers = [
+    { name = "Marius Garénaux Gruau", email = "marius.garenaux-gruau@irisa.fr" },
+]
+keywords = ["ai", "kernel", "jupyter", "pydantic-ai", "agent"]
+
+[project.urls]
+Repository = "https://github.com/mariusgarenaux/agentik"
+
+
+[tool.hatch.version]
+path = "agentik/__init__.py"
+
+# Used to call hatch_build.py
+[tool.hatch.build.hooks.custom]
+
+[tool.hatch.build.targets.sdist]
+include = ["/agentik"]
+
+[tool.hatch.build.targets.wheel.shared-data]
+"data_kernelspec/share" = "share"
