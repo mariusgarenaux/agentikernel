@@ -3,4 +3,4 @@
 __version__ = "0.1.0"
 
 
-from .kernel import Agentik  # noqa: F401
+from .kernel import Agentikernel  # noqa: F401

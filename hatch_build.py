@@ -13,7 +13,7 @@ from tempfile import TemporaryDirectory
 # use 'python' executable for portable wheels
 #
 kernel_json = {
-    "argv": ["python", "-m", "agentik", "-f", "{connection_file}"],
+    "argv": ["python", "-m", "agentikernel", "-f", "{connection_file}"],
     "display_name": "Agentik",
     "language": "text",
 }
@@ -40,5 +40,5 @@ class CustomHook(BuildHookInterface):
                     print("Custom logo files not found. Default logos will be used.")
 
             KernelSpecManager().install_kernel_spec(
-                td, "pydantic_ai", user=False, prefix=prefix
+                td, "agentikernel", user=False, prefix=prefix
             )
