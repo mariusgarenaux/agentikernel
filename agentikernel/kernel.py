@@ -42,6 +42,12 @@ class Agentikernel(PydanticAIBaseKernel):
     def __init__(self, **kwargs):
         super().__init__(kernel_name="agentik", **kwargs)
 
+        self.add_commands()
+
+        self.all_kernels: dict[str, KernelTool] = {}
+        self.tool_label_rank = 0
+
+    def add_commands(self):
         add_kernel_parser = KomandParser(prog="add_kernel")
         add_kernel_parser.add_argument(
             "connection_file", completer=self.add_kernel_cmd_completer
@@ -49,10 +55,15 @@ class Agentikernel(PydanticAIBaseKernel):
         add_kernel_parser.add_argument("--label", "-l", dest="label")
         add_kernel_cmd = Command(self.add_kernel_cmd_handler, add_kernel_parser)
 
+        remove_kernel_parser = KomandParser(prog="remove_kernel")
+        remove_kernel_parser.add_argument(
+            "label", completer=self.remove_kernel_completer
+        )
+        remove_kernel_cmd = Command(
+            self.remove_kernel_cmd_handler, remove_kernel_parser
+        )
         self.all_cmds["/add_kernel"] = add_kernel_cmd
-
-        self.all_kernels: dict[str, KernelTool] = {}
-        self.tool_label_rank = 0
+        self.all_cmds["/remove_kernel"] = remove_kernel_cmd
 
     def send_code_to_kernel(self, tool_label: str, code: str) -> str:
         """
@@ -217,6 +228,40 @@ class Agentikernel(PydanticAIBaseKernel):
         self.logger.info(
             f"Added tool : {tool_label} to agent. Here is the tool description {tool}"
         )
+
+    def remove_kernel_cmd_handler(self, args):
+        label = args.label
+        kernel = self.all_kernels.get(label, None)
+        if kernel is None:
+            raise KeyError(f"Could not find any kernel with label `{label}`")
+
+        kernel.kernel_client.stop_channels()
+        del self.all_kernels[label]
+
+        tool_idx = None
+        for k, each_tool in enumerate(self.tools):
+            if each_tool.name == label:
+                tool_idx = k
+
+        self.logger.debug(f"Tool index :  `{tool_idx}`.")
+        if tool_idx is not None and 0 <= tool_idx <= len(self.tools) - 1:
+            self.logger.debug(f"Deleting tool : `{label}`")
+            del self.tools[tool_idx]
+
+        self.agent = self.create_agent()  # reinitializes agent
+        self.logger.debug(f"Stopped channel with kernel `{label}`")
+        self.logger.debug(f"List of tools : `{self.tools}`")
+
+    def remove_kernel_completer(self, word: str, rank: int | None):
+        all_labels = self.all_kernels.keys()
+        all_matches = []
+        for each_label in all_labels:
+            if len(each_label) < len(word):
+                continue
+            potential_match = each_label[: len(word)]
+            if potential_match == word:
+                all_matches.append(each_label)
+        return all_matches
 
     def do_shutdown(self, restart):
         for each_kernel in self.all_kernels:
