@@ -54,6 +54,7 @@ class Agentikernel(PydanticAIBaseKernel):
         )
         add_kernel_parser.add_argument("--label", "-l", dest="label")
         add_kernel_cmd = Command(self.add_kernel_cmd_handler, add_kernel_parser)
+        self.all_cmds["/add_kernel"] = add_kernel_cmd
 
         remove_kernel_parser = KomandParser(prog="remove_kernel")
         remove_kernel_parser.add_argument(
@@ -62,8 +63,14 @@ class Agentikernel(PydanticAIBaseKernel):
         remove_kernel_cmd = Command(
             self.remove_kernel_cmd_handler, remove_kernel_parser
         )
-        self.all_cmds["/add_kernel"] = add_kernel_cmd
         self.all_cmds["/remove_kernel"] = remove_kernel_cmd
+
+        tools_parser = KomandParser(prog="tools")
+        tools_cmd = Command(self.tools_cmd_handler, tools_parser)
+        self.all_cmds["/tools"] = tools_cmd
+
+    def tools_cmd_handler(self, args):
+        return [each_tool.name for each_tool in self.tools]
 
     def send_code_to_kernel(self, tool_label: str, code: str) -> str:
         """
