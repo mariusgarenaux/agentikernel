@@ -9,27 +9,7 @@ from typing import Literal
 from dataclasses import dataclass
 
 
-KernelLabel = Literal[
-    "lama",
-    "loup",
-    "kaki",
-    "baba",
-    "yack",
-    "blob",
-    "flan",
-    "kiwi",
-    "taco",
-    "rose",
-    "thym",
-    "miel",
-    "lion",
-    "pneu",
-    "lune",
-    "ciel",
-    "coco",
-]
-
-ALL_TOOLS_LABELS: list[KernelLabel] = [
+ALL_TOOLS_LABELS: list[str] = [
     "lama",
     "loup",
     "kaki",
@@ -52,7 +32,7 @@ ALL_TOOLS_LABELS: list[KernelLabel] = [
 
 @dataclass
 class KernelTool:
-    label: KernelLabel
+    label: str
     connection_file: str
     tool: Tool
     kernel_client: BlockingKernelClient
@@ -66,6 +46,7 @@ class Agentikernel(PydanticAIBaseKernel):
         add_kernel_parser.add_argument(
             "connection_file", completer=self.add_kernel_cmd_completer
         )
+        add_kernel_parser.add_argument("--label", "-l", dest="label")
         add_kernel_cmd = Command(self.add_kernel_cmd_handler, add_kernel_parser)
 
         self.all_cmds["/add_kernel"] = add_kernel_cmd
@@ -188,10 +169,15 @@ class Agentikernel(PydanticAIBaseKernel):
         to this kernel :
         {json.dumps(kernel_info)}
         """
-        if self.tool_label_rank >= len(ALL_TOOLS_LABELS):
-            raise Exception("Too much kernel-tools for this agent.")
 
-        tool_label = ALL_TOOLS_LABELS[self.tool_label_rank]
+        tool_label = args.label
+
+        if tool_label is None:
+            if self.tool_label_rank >= len(ALL_TOOLS_LABELS):
+                raise Exception("Too much kernel-tools for this agent.")
+
+            tool_label = ALL_TOOLS_LABELS[self.tool_label_rank]
+
         tool = Tool.from_schema(
             function=lambda code: self.send_code_to_kernel(
                 tool_label=tool_label, code=code
