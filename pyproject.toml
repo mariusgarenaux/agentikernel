@@ -4,11 +4,11 @@ build-backend = "hatchling.build"
 
 [project]
 name = "agentikernel"
-version = "0.0.2"
+version = "0.0.3"
 description = "Jupyter Kernel containing an agent that can access to other kernels"
 readme = "README.md"
 requires-python = ">=3.10"
-dependencies = ["jupyter-client>=8.8.0", "pydantic-ai-kernel>=1.2.6"]
+dependencies = ["jupyter-client>=8.8.0", "pydantic-ai-kernel>=1.2.11"]
 authors = [
     { name = "Marius Garénaux Gruau", email = "marius.garenaux-gruau@irisa.fr" },
 ]

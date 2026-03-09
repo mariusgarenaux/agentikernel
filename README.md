@@ -80,7 +80,7 @@ We've added the following ones :
 
 - `/add_kernel path_to_kernel_connection_file --label tool_label`
 
-> Declares a tool to the pydantic-ai agent, that allows it to run code on the kernel. The kernel must already be running. The kernel connection file is created when you start any jupyter kernel, see [jupyter_client](https://jupyter-client.readthedocs.io/en/latest/kernels.html#connection-files). They are stored in a runtime directory, that you can access by runnning `jupyter --paths` [ref](https://docs.jupyter.org/en/stable/use/jupyter-directories.html#runtime-files)
+> Declares a tool to the pydantic-ai agent, that allows it to run code on the kernel. The kernel must already be running. The kernel connection file is created when you start any jupyter kernel, see [jupyter_client](https://jupyter-client.readthedocs.io/en/latest/kernels.html#connection-files). They are stored in a runtime directory, that you can access by runnning `jupyter --paths` [ref](https://docs.jupyter.org/en/stable/use/jupyter-directories.html#runtime-files) - see the Runtime paths.
 
 > By default, the agent has read-only access to the kernel. But it can be set to write, by specifying : `--mode=write`.
 
