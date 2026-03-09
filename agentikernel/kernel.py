@@ -9,7 +9,7 @@ from typing import Literal
 from dataclasses import dataclass
 
 
-ALL_TOOLS_LABELS: list[str] = [
+ALL_KERNELS_LABELS: list[str] = [
     "lama",
     "loup",
     "kaki",
@@ -31,7 +31,7 @@ ALL_TOOLS_LABELS: list[str] = [
 
 
 @dataclass
-class KernelTool:
+class Kernel:
     label: str
     connection_file: str
     tool: Tool
@@ -39,13 +39,15 @@ class KernelTool:
 
 
 class Agentikernel(PydanticAIBaseKernel):
+
     def __init__(self, **kwargs):
-        super().__init__(kernel_name="agentik", **kwargs)
+        super().__init__(kernel_name="agentikernel", **kwargs)
 
         self.add_commands()
 
-        self.all_kernels: dict[str, KernelTool] = {}
-        self.tool_label_rank = 0
+        self.all_kernels: dict[str, Kernel] = {}
+
+        self.kernel_label_rank = 0
 
     def add_commands(self):
         add_kernel_parser = KomandParser(prog="add_kernel")
@@ -53,6 +55,7 @@ class Agentikernel(PydanticAIBaseKernel):
             "connection_file", completer=self.add_kernel_cmd_completer
         )
         add_kernel_parser.add_argument("--label", "-l", dest="label")
+        add_kernel_parser.add_argument("--mode", "-m", dest="mode")
         add_kernel_cmd = Command(self.add_kernel_cmd_handler, add_kernel_parser)
         self.all_cmds["/add_kernel"] = add_kernel_cmd
 
@@ -72,14 +75,14 @@ class Agentikernel(PydanticAIBaseKernel):
     def tools_cmd_handler(self, args):
         return [each_tool.name for each_tool in self.tools]
 
-    def send_code_to_kernel(self, tool_label: str, code: str) -> str:
+    def send_code_to_kernel(self, kernel_label: str, code: str) -> str:
         """
         Executes code on Jupyter Kernel, and returns execution result.
         Used as tool for each new kernel added.
 
         Parameters:
         ---
-            - tool_label (str): the label of the kernel
+            - kernel_label (str): the label of the kernel
             - code (str): the code which will be sent for execution
                 to kernel
 
@@ -87,11 +90,11 @@ class Agentikernel(PydanticAIBaseKernel):
         ---
             Execution result of the kernel.
         """
-        self.logger.debug(f"Running code : `{code}` on kernel `{tool_label}`.")
-        if tool_label not in self.all_kernels:
-            raise KeyError(f"Unknown key {tool_label} in all_kernels list.")
+        self.logger.debug(f"Running code : `{code}` on kernel `{kernel_label}`.")
+        if kernel_label not in self.all_kernels:
+            raise KeyError(f"Unknown key {kernel_label} in all_kernels list.")
 
-        client = self.all_kernels[tool_label].kernel_client
+        client = self.all_kernels[kernel_label].kernel_client
 
         self.logger.debug(f"Client channels : {client.channels_running}")
         # Start communication channels
@@ -127,6 +130,120 @@ class Agentikernel(PydanticAIBaseKernel):
 
     def add_kernel_cmd_completer(self, word: str, rank: int | None) -> list[str]:
         return self.complete_path(word)
+    
+
+    def add_read_kernel_history_tool(self, kernel_info: str, kernel_label: str):
+        tool_desc = f"""
+        This tools allows you retrieve information from a jupyter kernel.
+        You can access to all the code that was executed on the kernel, as well as the output. 
+
+        You can of course propose (if the user asks for it) example of code snippets to answer user's queries.
+
+        Here is the standardized description of the kernel, including what is the language,
+        language version, ... :
+
+        {json.dumps(kernel_info)}
+        """
+
+        tool_label = f"read_history_of_{kernel_label}"
+        tool = Tool.from_schema(
+            function=lambda :self.read_kernel_history(kernel_label=kernel_label),
+            name=tool_label,
+            description=tool_desc,
+            json_schema={
+                "additionalProperties": False,
+                # "properties": {
+                #     "code": {
+                #         "description": "the code which will be executed on the kernel",
+                #         "type": "str",
+                #     },
+                # },
+                # "required": ["code"],
+                # "type": "object",
+            },
+            takes_ctx=False,
+        )
+        self.kernel_label_rank += 1
+        return tool
+
+    def read_kernel_history(self, kernel_label):
+        self.logger.debug(f"Accessing history of kernel `{kernel_label}`.")
+        if kernel_label not in self.all_kernels:
+            raise KeyError(f"Unknown key {kernel_label} in all_kernels list.")
+
+        client = self.all_kernels[kernel_label].kernel_client
+
+        self.logger.debug(f"Client channels : {client.channels_running}")
+
+        # Send history request
+        msg_id = client.history(
+            raw=True,
+            output=True,
+            hist_access_type="range",
+            session=0,
+            start=1,
+            stop=1000,
+        )
+
+        # Wait for reply
+        while True:
+            msg = client.get_shell_msg()
+            if msg["parent_header"].get("msg_id") != msg_id:
+                continue
+
+            if msg["msg_type"] == "history_reply":
+                # history = msg["content"]["history"]
+                self.logger.debug(f"Kernel history : {msg['content']}")
+                msg_history = msg["content"]["history"]
+                break
+    
+
+        string_history = ""
+        for session, line, code in msg_history:
+            inp, out = code
+            string_history += f"In [{line}]: {inp}\n"
+            string_history += f"Out[{line}]: {out}\n"
+
+        return string_history
+
+
+    def add_run_code_on_kernel_tool(self, kernel_info, kernel_label):
+        tool_desc = f"""
+        This tools allows you to send code to a jupyter kernel; and retrieve the execution result.
+        The only argument you can give to the tool is the raw_code (string) that needs to be sent
+        to the kernel.
+
+        What is inside the code depends on the language of the kernel. For example, it can be python,
+        R, octave, ... It can also be just any request in raw text (for example for a kernel that treats
+        natural language !)
+
+        Here is the standardized description of the kernel; to help you construct the code you will send
+        to this kernel :
+        {json.dumps(kernel_info)}
+        """
+
+        tool_name = f"send_code_to_{kernel_label}"
+        tool = Tool.from_schema(
+            function=lambda code: self.send_code_to_kernel(
+                kernel_label=kernel_label, code=code
+            ),
+            name=tool_name,
+            description=tool_desc,
+            json_schema={
+                "additionalProperties": False,
+                "properties": {
+                    "code": {
+                        "description": "the code which will be executed on the kernel",
+                        "type": "str",
+                    },
+                },
+                "required": ["code"],
+                "type": "object",
+            },
+            takes_ctx=False,
+        )
+        self.kernel_label_rank += 1
+        return tool
 
     def add_kernel_cmd_handler(self, args):
         """
@@ -143,7 +260,6 @@ class Agentikernel(PydanticAIBaseKernel):
         new_kernel_client = BlockingKernelClient(connection_file=path)
         new_kernel_client.load_connection_file()
         self.logger.info(f"Loaded connection file located at {path}")
-        self.all_kernels
 
         new_kernel_client.start_channels()
         kernel_info = None
@@ -174,50 +290,21 @@ class Agentikernel(PydanticAIBaseKernel):
             )
             return
 
-        tool_desc = f"""
-        This tools allows you to send code to a jupyter kernel; and retrieve the execution result.
-        The only argument you can give to the tool is the raw_code (string) that needs to be sent
-        to the kernel.
+        kernel_label = args.label
 
-        What is inside the code depends on the language of the kernel. For example, it can be python,
-        R, octave, ... It can also be just any request in raw text (for example for a kernel that treats
-        natural language !)
-
-        Here is the standardized description of the kernel; to help you construct the code you will send
-        to this kernel :
-        {json.dumps(kernel_info)}
-        """
-
-        tool_label = args.label
-
-        if tool_label is None:
-            if self.tool_label_rank >= len(ALL_TOOLS_LABELS):
+        if kernel_label is None:
+            if self.kernel_label_rank >= len(ALL_KERNELS_LABELS):
                 raise Exception("Too much kernel-tools for this agent.")
 
-            tool_label = ALL_TOOLS_LABELS[self.tool_label_rank]
-
-        tool = Tool.from_schema(
-            function=lambda code: self.send_code_to_kernel(
-                tool_label=tool_label, code=code
-            ),
-            name=tool_label,
-            description=tool_desc,
-            json_schema={
-                "additionalProperties": False,
-                "properties": {
-                    "code": {
-                        "description": "the code which will be executed on the kernel",
-                        "type": "str",
-                    },
-                },
-                "required": ["code"],
-                "type": "object",
-            },
-            takes_ctx=False,
-        )
-        self.tool_label_rank += 1
-
-        self.tools.append(tool)
+            kernel_label = ALL_KERNELS_LABELS[self.kernel_label_rank]
+        if args.mode == "write":
+            write_tool = self.add_run_code_on_kernel_tool(kernel_info, kernel_label)
+            self.tools.append(write_tool)
+            
+        
+        read_tool = self.add_read_kernel_history_tool(kernel_info, kernel_label)
+        self.tools.append(read_tool)
+        
         try:
             self.agent = self.create_agent()  # updates agent
         except ValueError as e:
@@ -226,14 +313,15 @@ class Agentikernel(PydanticAIBaseKernel):
                 "Please load a configuration file for the agent before adding tools. Run /load_config to do so."
             ) from e
 
-        self.all_kernels[tool_label] = KernelTool(
-            label=tool_label,
-            connection_file=path,
-            tool=tool,
-            kernel_client=new_kernel_client,
-        )
+        self.all_kernels[kernel_label] = Kernel(
+                label=kernel_label,
+                connection_file=path,
+                tool=read_tool,
+                kernel_client=new_kernel_client,
+            )
+
         self.logger.info(
-            f"Added tool : {tool_label} to agent. Here is the tool description {tool}"
+            f"Added kernel {kernel_label}."
         )
 
     def remove_kernel_cmd_handler(self, args):

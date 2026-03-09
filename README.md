@@ -1,9 +1,18 @@
 # Agentikernel
 
-An agent wrapped in a jupyter kernel, that can use any kernel as a tool.
-This is a subclass of [pydantic-ai-kernel](https://github.com/mariusgarenaux/pydantic-ai-kernel).
+> BETA version
 
-We added the '/add_kernel' command that allows to declare to the agent a jupyter kernel as a tool. **The 'tool-kernel' must already be running**, and you just give the agent the path to the kernel connection file.
+This is an AI agent, wrapped in a jupyter kernel.
+
+It is made to interact with other kernels, through different levels of authorization :
+
+- read kernel history,
+
+(- send code to kernel with user validation) # not yet implemented
+
+- send code to kernel without user validation.
+
+This is a subclass of [pydantic-ai-kernel](https://github.com/mariusgarenaux/pydantic-ai-kernel).
 
 ## Getting Started
 
@@ -25,8 +34,8 @@ for command line interface. But a jupyter notebook would also work.
 Create a config file following the scheme [declared here](https://github.com/mariusgarenaux/pydantic-ai-kernel). For example :
 
 ```yaml
-agent_name: pydantic_ai
-system_prompt: You are a specialist in cooking, and you are always ready to help people creating new cooking recipees.
+agent_name: agentik
+system_prompt: You are a specialist in code, always ready to analyze code from jupyter kernels.
 model:
   model_name: qwen3:1.7b
   model_type: openai
@@ -35,6 +44,9 @@ model:
     params:
       base_url: http://localhost:11434/v1
 ```
+
+> a permanent config file can be placed in `~/.jupyter/jupyter_agentikernel_config.yaml`.
+
 
 Then start the kernel `jupyter console --kernel agentikernel`, and send :
 
@@ -69,6 +81,8 @@ We've added the following ones :
 - `/add_kernel path_to_kernel_connection_file --label tool_label`
 
 > Declares a tool to the pydantic-ai agent, that allows it to run code on the kernel. The kernel must already be running. The kernel connection file is created when you start any jupyter kernel, see [jupyter_client](https://jupyter-client.readthedocs.io/en/latest/kernels.html#connection-files). They are stored in a runtime directory, that you can access by runnning `jupyter --paths` [ref](https://docs.jupyter.org/en/stable/use/jupyter-directories.html#runtime-files)
+
+> By default, the agent has read-only access to the kernel. But it can be set to write, by specifying : `--mode=write`.
 
 - `/remove_kernel tool_label`
 

@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "agentikernel"
 version = "0.1.0"
-description = "Add your description here"
+description = "Jupyter Kernel containing an agent that can access to other kernels"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = ["jupyter-client>=8.8.0", "pydantic-ai-kernel>=1.2.6"]
