@@ -1,13 +1,7 @@
-# Python-generated files
-__pycache__/
-*.py[oc]
-build/
-dist/
-wheels/
-*.egg-info
-
-# Virtual environments
 .venv
+**/__pycache__
+**/dist
+**/data_kernelspec
+**/kernel-**.json
 
-data_kernelspec/
-init.txt
+ex_scripts/

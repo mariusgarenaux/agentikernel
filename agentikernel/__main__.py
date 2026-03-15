@@ -1,5 +1,5 @@
 from ipykernel.kernelapp import IPKernelApp
-from . import Agentikernel
+from . import AgentiKernel
 
 
-IPKernelApp.launch_instance(kernel_class=Agentikernel)
+IPKernelApp.launch_instance(kernel_class=AgentiKernel)
