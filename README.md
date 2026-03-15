@@ -1,16 +1,14 @@
 # Agentikernel
 
-> BETA version
-
 This is an AI agent, wrapped in a jupyter kernel.
 
 It is made to interact with other kernels, through different levels of authorization :
 
 - read kernel history,
 
-(- send code to kernel with user validation) # not yet implemented
+- send code to kernel with user validation
 
-- send code to kernel without user validation.
+- (send code to kernel without user validation) # not yet implemented
 
 This is a subclass of [pydantic-ai-kernel](https://github.com/mariusgarenaux/pydantic-ai-kernel).
 
