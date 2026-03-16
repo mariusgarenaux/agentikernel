@@ -2,6 +2,8 @@
 
 This is an AI agent, wrapped in a jupyter kernel.
 
+![example](https://github.com/mariusgarenaux/agentikernel/blob/main/example.png?raw=True)
+
 It is made to interact with other kernels, through different levels of authorization :
 
 - read kernel history,
