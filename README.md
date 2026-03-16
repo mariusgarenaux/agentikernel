@@ -69,20 +69,22 @@ Within the agentikernel, run :
 %add_kernel kernel_connection_file_test.json
 ```
 
-Then, the agentikernel can use the python kernel in read-only mode. It means it can access the cells that have been running on the kernel.
+Then, the agentikernel can use the python kernel in read-only mode. It means it can access the cells that have been running on the kernel. Add the flag `-w, --write` to give write access (code execution); with user approval.
+
+> Write access without user approval is not yet implemented.
 
 ## Commands
 
-All commands from [pydantic-ai-kernel](https://github.com/mariusgarenaux/pydantic-ai-kernel) are inherited (`/load_config`, ...).
+All magics commands from [pydantic-ai-kernel](https://github.com/mariusgarenaux/pydantic-ai-kernel) are inherited (`%load_config`, `%tools`, `%agent_history`, ...). Run `%magics` to have a full list of them, and `%help <magic_command>` for help.
 
 We've added the following ones :
 
-- `%add_kernel path_to_kernel_connection_file --label tool_label`
+- `%add_kernel path_to_kernel_connection_file --label kernel_label`
 
-> Declares a tool to the pydantic-ai agent, that allows it to run code on the kernel. The kernel must already be running. The kernel connection file is created when you start any jupyter kernel, see [jupyter_client](https://jupyter-client.readthedocs.io/en/latest/kernels.html#connection-files). They are stored in a runtime directory, that you can access by runnning `jupyter --paths` [ref](https://docs.jupyter.org/en/stable/use/jupyter-directories.html#runtime-files) - see the Runtime paths.
+> Declares read-only tool towards the pydantic-ai agent. The kernel must already be running. The kernel connection file is created when you start any jupyter kernel, see [jupyter_client](https://jupyter-client.readthedocs.io/en/latest/kernels.html#connection-files). They are stored in a runtime directory, that you can access by runnning `jupyter --paths` [ref](https://docs.jupyter.org/en/stable/use/jupyter-directories.html#runtime-files) - see the Runtime paths.
 
-> By default, the agent has read-only access to the kernel. But it can be set to write, by adding the flag: `--write`.
+> By default, the agent has read-only access to the kernel. But it can be set to write, by adding the flag: `--write`. All code execution on external kernel requires user validation.
 
-- `%remove_kernel tool_label`
+- `%remove_kernel kernel_label`
 
-> Removes the connection with the kernel that has label 'tool_label'. And removes the tool to call it for the agent. The kernel is not stopped, we just undeclare it to the agent. Connection can be made again by running %add_kernel.
+> Removes the connection with the kernel that has label 'kernel_label'. And removes the tool to call it for the agent. The kernel is not stopped, we just undeclare it to the agent. Connection can be made again by running %add_kernel.
